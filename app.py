@@ -1,0 +1,89 @@
+"""
+app.py - Flask server for Air Quality Monitoring Dashboard
+"""
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+import database
+import os
+
+app = Flask(__name__, static_folder='static', static_url_path='')
+CORS(app)
+
+# Initialize database on startup
+database.init_db()
+
+
+# ======================== API ENDPOINTS ========================
+
+@app.route('/api/data', methods=['POST'])
+def receive_data():
+    """Receive sensor data from ESP32 via JSON POST."""
+    try:
+        data = request.get_json(force=True)
+
+        pm25 = float(data.get('pm25', 0))
+        temperature = float(data.get('temperature', 0))
+        humidity = float(data.get('humidity', 0))
+        pressure = float(data.get('pressure', 0))
+        uv = float(data.get('uv', 0))
+        date_str = data.get('date', '')
+        time_str = data.get('time', '')
+
+        database.insert_data(pm25, temperature, humidity, pressure, uv, date_str, time_str)
+
+        return jsonify({'status': 'ok', 'message': 'Data saved'}), 200
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+
+
+@app.route('/api/latest', methods=['GET'])
+def get_latest():
+    """Get the most recent sensor reading."""
+    latest = database.get_latest()
+    if latest:
+        return jsonify(latest), 200
+    return jsonify({'status': 'no_data'}), 200
+
+
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    """Get historical data. Query param: hours (default 24)."""
+    hours = request.args.get('hours', 24, type=int)
+    hours = min(hours, 168)  # max 7 days
+    data = database.get_data(hours=hours)
+    return jsonify(data), 200
+
+
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    """Get statistics for the last N hours."""
+    hours = request.args.get('hours', 24, type=int)
+    stats = database.get_stats(hours=hours)
+    stats['total_records'] = database.get_row_count()
+    return jsonify(stats), 200
+
+
+@app.route('/api/predict', methods=['GET'])
+def get_prediction():
+    """Placeholder for AI prediction endpoint."""
+    # TODO: Integrate with trained model in the future
+    return jsonify({
+        'status': 'placeholder',
+        'message': 'AI prediction module will be integrated here',
+        'prediction': None
+    }), 200
+
+
+# ======================== SERVE FRONTEND ========================
+
+@app.route('/')
+def serve_index():
+    return send_from_directory(app.static_folder, 'index.html')
+
+
+# ======================== RUN ========================
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)

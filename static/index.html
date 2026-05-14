@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giám Sát Chất Lượng Không Khí</title>
+    <meta name="description" content="Hệ thống giám sát và dự báo chất lượng không khí thời gian thực bằng IoT và AI">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- ============ HEADER ============ -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" stroke="url(#grad)" stroke-width="2.5" fill="none"/>
+                    <circle cx="16" cy="16" r="6" fill="url(#grad)"/>
+                    <path d="M16 4 L16 8 M16 24 L16 28 M4 16 L8 16 M24 16 L28 16" stroke="url(#grad)" stroke-width="2" stroke-linecap="round"/>
+                    <defs><linearGradient id="grad" x1="0" y1="0" x2="32" y2="32"><stop offset="0%" stop-color="#6ee7b7"/><stop offset="100%" stop-color="#3b82f6"/></linearGradient></defs>
+                </svg>
+            </div>
+            <div>
+                <h1 class="header-title">Giám Sát Không Khí</h1>
+                <p class="header-sub">Hệ thống IoT &amp; AI</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-badge" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Đang kết nối...</span>
+            </div>
+            <div class="header-time" id="headerTime">--:--:--</div>
+        </div>
+    </header>
+
+    <!-- ============ MAIN ============ -->
+    <main class="main">
+
+        <!-- ===== SENSOR CARDS ===== -->
+        <section class="cards-grid">
+            <div class="sensor-card card-pm25" id="card-pm25">
+                <div class="card-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/><circle cx="12" cy="12" r="8" stroke-dasharray="4 2"/></svg>
+                </div>
+                <div class="card-body">
+                    <span class="card-label">PM2.5</span>
+                    <span class="card-value" id="val-pm25">--</span>
+                    <span class="card-unit">µg/m³</span>
+                </div>
+                <div class="card-quality" id="quality-pm25">--</div>
+            </div>
+
+            <div class="sensor-card card-temp">
+                <div class="card-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+                </div>
+                <div class="card-body">
+                    <span class="card-label">Nhiệt độ</span>
+                    <span class="card-value" id="val-temp">--</span>
+                    <span class="card-unit">°C</span>
+                </div>
+                <div class="card-minmax"><span id="min-temp">--</span> ~ <span id="max-temp">--</span></div>
+            </div>
+
+            <div class="sensor-card card-hum">
+                <div class="card-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                </div>
+                <div class="card-body">
+                    <span class="card-label">Độ ẩm</span>
+                    <span class="card-value" id="val-hum">--</span>
+                    <span class="card-unit">%</span>
+                </div>
+                <div class="card-minmax"><span id="min-hum">--</span> ~ <span id="max-hum">--</span></div>
+            </div>
+
+            <div class="sensor-card card-pres">
+                <div class="card-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V4m-7 7l7-7 7 7"/><line x1="5" y1="20" x2="19" y2="20"/></svg>
+                </div>
+                <div class="card-body">
+                    <span class="card-label">Áp suất</span>
+                    <span class="card-value" id="val-pres">--</span>
+                    <span class="card-unit">hPa</span>
+                </div>
+                <div class="card-minmax"><span id="min-pres">--</span> ~ <span id="max-pres">--</span></div>
+            </div>
+
+            <div class="sensor-card card-uv">
+                <div class="card-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                </div>
+                <div class="card-body">
+                    <span class="card-label">Tia UV</span>
+                    <span class="card-value" id="val-uv">--</span>
+                    <span class="card-unit">chỉ số</span>
+                </div>
+                <div class="card-quality" id="quality-uv">--</div>
+            </div>
+        </section>
+
+        <!-- ===== TIME RANGE ===== -->
+        <section class="time-selector">
+            <span class="time-label">Khoảng thời gian:</span>
+            <div class="time-buttons">
+                <button class="time-btn" data-hours="1">1 giờ</button>
+                <button class="time-btn" data-hours="6">6 giờ</button>
+                <button class="time-btn active" data-hours="24">24 giờ</button>
+                <button class="time-btn" data-hours="72">3 ngày</button>
+                <button class="time-btn" data-hours="168">7 ngày</button>
+            </div>
+            <div class="data-info">
+                <span id="dataCount">0</span> bản ghi | Cập nhật: <span id="lastUpdate">--:--</span>
+            </div>
+        </section>
+
+        <!-- ===== CHARTS ===== -->
+        <section class="charts-grid">
+            <div class="chart-card">
+                <h3 class="chart-title">
+                    <span class="dot dot-pm25"></span> PM2.5 (µg/m³)
+                </h3>
+                <div class="chart-wrap"><canvas id="chart-pm25"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h3 class="chart-title">
+                    <span class="dot dot-temp"></span> Nhiệt độ (°C)
+                </h3>
+                <div class="chart-wrap"><canvas id="chart-temp"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h3 class="chart-title">
+                    <span class="dot dot-hum"></span> Độ ẩm (%)
+                </h3>
+                <div class="chart-wrap"><canvas id="chart-hum"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h3 class="chart-title">
+                    <span class="dot dot-pres"></span> Áp suất (hPa)
+                </h3>
+                <div class="chart-wrap"><canvas id="chart-pres"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h3 class="chart-title">
+                    <span class="dot dot-uv"></span> Tia UV
+                </h3>
+                <div class="chart-wrap"><canvas id="chart-uv"></canvas></div>
+            </div>
+        </section>
+
+        <!-- ===== AI PREDICTION ===== -->
+        <section class="ai-section">
+            <div class="ai-header">
+                <div class="ai-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93L12 22l-.75-12.07A4.001 4.001 0 0 1 12 2z"/><circle cx="12" cy="6" r="1.5" fill="currentColor"/></svg>
+                </div>
+                <h2 class="ai-title">Dự Báo AI</h2>
+                <span class="ai-badge">Sắp ra mắt</span>
+            </div>
+            <div class="ai-content">
+                <div class="ai-placeholder">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/><path d="M7 8h2m2 0h2m2 0h2M7 11h10"/>
+                    </svg>
+                    <p>Mô hình AI dự báo chất lượng không khí sẽ được tích hợp tại đây.</p>
+                    <p class="ai-hint">Dự báo PM2.5 trong 1-6 giờ tới dựa trên dữ liệu lịch sử và mô hình học máy.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== FOOTER ===== -->
+        <footer class="footer">
+            <p>Đồ án tốt nghiệp — Hệ thống giám sát và dự báo chất lượng không khí bằng IoT &amp; AI</p>
+        </footer>
+
+    </main>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
