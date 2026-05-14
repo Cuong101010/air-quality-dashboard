@@ -1,91 +1,114 @@
 """
-database.py - SQLite module for Air Quality Dashboard
+database.py - PostgreSQL module for Air Quality Dashboard
+Uses Neon.tech cloud database for persistent data storage.
 """
-import sqlite3
+import psycopg2
+import psycopg2.extras
 import os
 from datetime import datetime, timedelta
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'airquality.db')
+DATABASE_URL = os.environ.get(
+    'DATABASE_URL',
+    'postgresql://neondb_owner:npg_LveS4FVoGZE0@ep-polished-king-aogjlvko.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require'
+)
 
 
 def get_db():
     """Get a database connection."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    conn = psycopg2.connect(DATABASE_URL)
     return conn
 
 
 def init_db():
     """Create tables if they don't exist."""
     conn = get_db()
-    conn.execute('''
+    cur = conn.cursor()
+    cur.execute('''
         CREATE TABLE IF NOT EXISTS sensor_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            pm25 REAL NOT NULL,
-            temperature REAL NOT NULL,
-            humidity REAL NOT NULL,
-            pressure REAL NOT NULL,
-            uv REAL NOT NULL,
+            id SERIAL PRIMARY KEY,
+            timestamp TIMESTAMP DEFAULT NOW(),
+            pm25 DOUBLE PRECISION NOT NULL,
+            temperature DOUBLE PRECISION NOT NULL,
+            humidity DOUBLE PRECISION NOT NULL,
+            pressure DOUBLE PRECISION NOT NULL,
+            uv DOUBLE PRECISION NOT NULL,
             date_str TEXT,
             time_str TEXT
         )
     ''')
-    conn.execute('''
+    # Create index if not exists
+    cur.execute('''
         CREATE INDEX IF NOT EXISTS idx_timestamp ON sensor_data(timestamp)
     ''')
     conn.commit()
+    cur.close()
     conn.close()
 
 
 def insert_data(pm25, temperature, humidity, pressure, uv, date_str=None, time_str=None):
     """Insert a new sensor reading."""
     conn = get_db()
+    cur = conn.cursor()
     vn_time = (datetime.utcnow() + timedelta(hours=7)).strftime('%Y-%m-%d %H:%M:%S')
-    conn.execute(
+    cur.execute(
         '''INSERT INTO sensor_data (timestamp, pm25, temperature, humidity, pressure, uv, date_str, time_str)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
         (vn_time, pm25, temperature, humidity, pressure, uv, date_str, time_str)
     )
     conn.commit()
+    cur.close()
     conn.close()
 
 
 def get_latest():
     """Get the most recent reading."""
     conn = get_db()
-    row = conn.execute(
-        'SELECT * FROM sensor_data ORDER BY id DESC LIMIT 1'
-    ).fetchone()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute('SELECT * FROM sensor_data ORDER BY id DESC LIMIT 1')
+    row = cur.fetchone()
+    cur.close()
     conn.close()
     if row:
-        return dict(row)
+        result = dict(row)
+        # Convert timestamp to string for JSON serialization
+        if isinstance(result.get('timestamp'), datetime):
+            result['timestamp'] = result['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+        return result
     return None
 
 
 def get_data(hours=24, limit=2000):
     """Get data from the last N hours."""
     conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     vn_now = datetime.utcnow() + timedelta(hours=7)
     since = (vn_now - timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
-    rows = conn.execute(
+    cur.execute(
         '''SELECT * FROM sensor_data
-           WHERE timestamp >= ?
+           WHERE timestamp >= %s
            ORDER BY timestamp ASC
-           LIMIT ?''',
+           LIMIT %s''',
         (since, limit)
-    ).fetchall()
+    )
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
-    return [dict(r) for r in rows]
+    results = []
+    for r in rows:
+        d = dict(r)
+        if isinstance(d.get('timestamp'), datetime):
+            d['timestamp'] = d['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+        results.append(d)
+    return results
 
 
 def get_stats(hours=24):
     """Get min/max/avg stats for the last N hours."""
     conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     vn_now = datetime.utcnow() + timedelta(hours=7)
     since = (vn_now - timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
-    row = conn.execute(
+    cur.execute(
         '''SELECT
                COUNT(*) as count,
                AVG(pm25) as avg_pm25, MIN(pm25) as min_pm25, MAX(pm25) as max_pm25,
@@ -94,31 +117,56 @@ def get_stats(hours=24):
                AVG(pressure) as avg_pres, MIN(pressure) as min_pres, MAX(pressure) as max_pres,
                AVG(uv) as avg_uv, MIN(uv) as min_uv, MAX(uv) as max_uv
            FROM sensor_data
-           WHERE timestamp >= ?''',
+           WHERE timestamp >= %s''',
         (since,)
-    ).fetchone()
+    )
+    row = cur.fetchone()
+    cur.close()
     conn.close()
-    return dict(row) if row else {}
+    if row:
+        result = dict(row)
+        # Convert Decimal types to float for JSON serialization
+        for key, value in result.items():
+            if value is not None and not isinstance(value, (int, float, str)):
+                try:
+                    result[key] = float(value)
+                except (ValueError, TypeError):
+                    pass
+        return result
+    return {}
 
 
 def get_row_count():
     """Get total number of rows."""
     conn = get_db()
-    row = conn.execute('SELECT COUNT(*) as count FROM sensor_data').fetchone()
+    cur = conn.cursor()
+    cur.execute('SELECT COUNT(*) as count FROM sensor_data')
+    row = cur.fetchone()
+    cur.close()
     conn.close()
-    return row['count'] if row else 0
+    return row[0] if row else 0
+
 
 def get_data_range(start_date, end_date):
     """Get data between two dates (format YYYY-MM-DD)."""
     conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     # Add time bounds to include the entire end_date
     start = f"{start_date} 00:00:00"
     end = f"{end_date} 23:59:59"
-    rows = conn.execute(
+    cur.execute(
         '''SELECT * FROM sensor_data
-           WHERE timestamp >= ? AND timestamp <= ?
+           WHERE timestamp >= %s AND timestamp <= %s
            ORDER BY timestamp ASC''',
         (start, end)
-    ).fetchall()
+    )
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
-    return [dict(r) for r in rows]
+    results = []
+    for r in rows:
+        d = dict(r)
+        if isinstance(d.get('timestamp'), datetime):
+            d['timestamp'] = d['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+        results.append(d)
+    return results
