@@ -112,6 +112,9 @@
                 <button class="time-btn active" data-hours="24">24 giờ</button>
                 <button class="time-btn" data-hours="72">3 ngày</button>
                 <button class="time-btn" data-hours="168">7 ngày</button>
+                <button class="time-btn export-btn" id="openExportBtn" style="margin-left: 10px; border-color: var(--accent-green); color: var(--accent-green);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Xuất CSV
+                </button>
             </div>
             <div class="data-info">
                 <span id="dataCount">0</span> bản ghi | Cập nhật: <span id="lastUpdate">--:--</span>
@@ -176,6 +179,27 @@
         <footer class="footer">
             <p>Đồ án tốt nghiệp — Hệ thống giám sát và dự báo chất lượng không khí bằng IoT &amp; AI</p>
         </footer>
+
+        <!-- ===== EXPORT MODAL ===== -->
+        <div id="exportModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Xuất Dữ Liệu</h2>
+                    <span class="close-btn" id="closeExportBtn">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Từ ngày:</label>
+                        <input type="date" id="exportStart" class="date-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Đến ngày:</label>
+                        <input type="date" id="exportEnd" class="date-input">
+                    </div>
+                    <button class="time-btn active" style="width: 100%; margin-top: 1rem; padding: 0.6rem; font-size: 0.9rem;" id="doExportBtn">Tải Xuống CSV</button>
+                </div>
+            </div>
+        </div>
 
     </main>
 

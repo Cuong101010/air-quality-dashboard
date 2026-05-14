@@ -1,7 +1,7 @@
 """
 app.py - Flask server for Air Quality Monitoring Dashboard
 """
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 import database
 import os
@@ -64,6 +64,9 @@ def get_stats():
     return jsonify(stats), 200
 
 
+import csv
+from io import StringIO
+
 @app.route('/api/predict', methods=['GET'])
 def get_prediction():
     """Placeholder for AI prediction endpoint."""
@@ -74,6 +77,33 @@ def get_prediction():
         'prediction': None
     }), 200
 
+
+@app.route('/api/export', methods=['GET'])
+def export_data():
+    """Export data as CSV for a given date range."""
+    start_date = request.args.get('start', '2000-01-01')
+    end_date = request.args.get('end', '2100-12-31')
+    
+    rows = database.get_data_range(start_date, end_date)
+    
+    si = StringIO()
+    cw = csv.writer(si)
+    # Header
+    cw.writerow(['ID', 'Timestamp_VN', 'PM2.5', 'Temperature_C', 'Humidity_%', 'Pressure_hPa', 'UV_Index', 'Date_ESP32', 'Time_ESP32'])
+    
+    for r in rows:
+        cw.writerow([
+            r['id'], r['timestamp'], r['pm25'], r['temperature'], 
+            r['humidity'], r['pressure'], r['uv'], 
+            r['date_str'], r['time_str']
+        ])
+        
+    output = si.getvalue()
+    return Response(
+        output,
+        mimetype='text/csv',
+        headers={"Content-Disposition": f"attachment;filename=air_quality_{start_date}_to_{end_date}.csv"}
+    )
 
 # ======================== SERVE FRONTEND ========================
 

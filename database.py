@@ -42,10 +42,11 @@ def init_db():
 def insert_data(pm25, temperature, humidity, pressure, uv, date_str=None, time_str=None):
     """Insert a new sensor reading."""
     conn = get_db()
+    vn_time = (datetime.utcnow() + timedelta(hours=7)).strftime('%Y-%m-%d %H:%M:%S')
     conn.execute(
-        '''INSERT INTO sensor_data (pm25, temperature, humidity, pressure, uv, date_str, time_str)
-           VALUES (?, ?, ?, ?, ?, ?, ?)''',
-        (pm25, temperature, humidity, pressure, uv, date_str, time_str)
+        '''INSERT INTO sensor_data (timestamp, pm25, temperature, humidity, pressure, uv, date_str, time_str)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+        (vn_time, pm25, temperature, humidity, pressure, uv, date_str, time_str)
     )
     conn.commit()
     conn.close()
@@ -66,7 +67,8 @@ def get_latest():
 def get_data(hours=24, limit=2000):
     """Get data from the last N hours."""
     conn = get_db()
-    since = (datetime.utcnow() - timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
+    vn_now = datetime.utcnow() + timedelta(hours=7)
+    since = (vn_now - timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
     rows = conn.execute(
         '''SELECT * FROM sensor_data
            WHERE timestamp >= ?
@@ -81,7 +83,8 @@ def get_data(hours=24, limit=2000):
 def get_stats(hours=24):
     """Get min/max/avg stats for the last N hours."""
     conn = get_db()
-    since = (datetime.utcnow() - timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
+    vn_now = datetime.utcnow() + timedelta(hours=7)
+    since = (vn_now - timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
     row = conn.execute(
         '''SELECT
                COUNT(*) as count,
@@ -104,3 +107,18 @@ def get_row_count():
     row = conn.execute('SELECT COUNT(*) as count FROM sensor_data').fetchone()
     conn.close()
     return row['count'] if row else 0
+
+def get_data_range(start_date, end_date):
+    """Get data between two dates (format YYYY-MM-DD)."""
+    conn = get_db()
+    # Add time bounds to include the entire end_date
+    start = f"{start_date} 00:00:00"
+    end = f"{end_date} 23:59:59"
+    rows = conn.execute(
+        '''SELECT * FROM sensor_data
+           WHERE timestamp >= ? AND timestamp <= ?
+           ORDER BY timestamp ASC''',
+        (start, end)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]

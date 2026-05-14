@@ -285,6 +285,49 @@ function setupTimeButtons() {
     });
 }
 
+// ===================== EXPORT MODAL =====================
+function setupExportModal() {
+    const modal = document.getElementById('exportModal');
+    const openBtn = document.getElementById('openExportBtn');
+    const closeBtn = document.getElementById('closeExportBtn');
+    const doBtn = document.getElementById('doExportBtn');
+    const startInput = document.getElementById('exportStart');
+    const endInput = document.getElementById('exportEnd');
+
+    // Set default dates (Last 7 days to Today)
+    const today = new Date();
+    const lastWeek = new Date(today);
+    lastWeek.setDate(today.getDate() - 7);
+
+    startInput.value = lastWeek.toISOString().split('T')[0];
+    endInput.value = today.toISOString().split('T')[0];
+
+    openBtn.addEventListener('click', () => modal.classList.add('show'));
+    closeBtn.addEventListener('click', () => modal.classList.remove('show'));
+    
+    // Close on outside click
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('show');
+    });
+
+    doBtn.addEventListener('click', () => {
+        const start = startInput.value;
+        const end = endInput.value;
+        if (!start || !end) {
+            alert('Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc!');
+            return;
+        }
+        if (start > end) {
+            alert('Ngày bắt đầu không được lớn hơn ngày kết thúc!');
+            return;
+        }
+        
+        // Trigger download via window.location
+        window.location.href = `${API_BASE}/api/export?start=${start}&end=${end}`;
+        modal.classList.remove('show');
+    });
+}
+
 // ===================== POLLING =====================
 async function refreshAll() {
     await Promise.all([fetchLatest(), fetchHistory(), fetchStats()]);
@@ -294,6 +337,7 @@ async function refreshAll() {
 document.addEventListener('DOMContentLoaded', () => {
     initCharts();
     setupTimeButtons();
+    setupExportModal();
     updateClock();
     setInterval(updateClock, 1000);
 
