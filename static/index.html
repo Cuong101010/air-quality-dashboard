@@ -156,21 +156,74 @@
         </section>
 
         <!-- ===== AI PREDICTION ===== -->
-        <section class="ai-section">
+        <section class="ai-section" id="aiSection">
             <div class="ai-header">
                 <div class="ai-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93L12 22l-.75-12.07A4.001 4.001 0 0 1 12 2z"/><circle cx="12" cy="6" r="1.5" fill="currentColor"/></svg>
                 </div>
                 <h2 class="ai-title">Dự Báo AI</h2>
-                <span class="ai-badge">Sắp ra mắt</span>
+                <span class="ai-badge" id="aiBadge">Đang tải...</span>
+                <span class="ai-method" id="aiMethod"></span>
             </div>
-            <div class="ai-content">
+
+            <!-- Current Weather -->
+            <div class="current-weather" id="currentWeather" style="display:none;">
+                <div class="weather-icon-large" id="currentWeatherIcon">🌤️</div>
+                <div class="weather-info">
+                    <span class="weather-label-text">Thời tiết hiện tại</span>
+                    <span class="weather-state" id="currentWeatherText">--</span>
+                </div>
+            </div>
+
+            <!-- Prediction Cards -->
+            <div class="prediction-grid" id="predictionGrid" style="display:none;">
+                <!-- 30 min forecast -->
+                <div class="predict-card predict-30">
+                    <div class="predict-header">
+                        <span class="predict-horizon">⏱ Sau 30 phút</span>
+                        <span class="predict-time" id="predictTime30">--:--</span>
+                    </div>
+                    <div class="predict-weather">
+                        <span class="predict-weather-icon" id="weatherIcon30">🌤️</span>
+                        <span class="predict-weather-text" id="weatherText30">--</span>
+                    </div>
+                    <div class="predict-values">
+                        <div class="pv-item"><span class="pv-label">PM2.5</span><span class="pv-val" id="pred30-pm25">--</span><span class="pv-unit">µg/m³</span></div>
+                        <div class="pv-item"><span class="pv-label">Nhiệt độ</span><span class="pv-val" id="pred30-temp">--</span><span class="pv-unit">°C</span></div>
+                        <div class="pv-item"><span class="pv-label">Độ ẩm</span><span class="pv-val" id="pred30-hum">--</span><span class="pv-unit">%</span></div>
+                        <div class="pv-item"><span class="pv-label">Áp suất</span><span class="pv-val" id="pred30-pres">--</span><span class="pv-unit">hPa</span></div>
+                        <div class="pv-item"><span class="pv-label">UV</span><span class="pv-val" id="pred30-uv">--</span><span class="pv-unit">chỉ số</span></div>
+                    </div>
+                </div>
+
+                <!-- 60 min forecast -->
+                <div class="predict-card predict-60">
+                    <div class="predict-header">
+                        <span class="predict-horizon">⏱ Sau 60 phút</span>
+                        <span class="predict-time" id="predictTime60">--:--</span>
+                    </div>
+                    <div class="predict-weather">
+                        <span class="predict-weather-icon" id="weatherIcon60">🌤️</span>
+                        <span class="predict-weather-text" id="weatherText60">--</span>
+                    </div>
+                    <div class="predict-values">
+                        <div class="pv-item"><span class="pv-label">PM2.5</span><span class="pv-val" id="pred60-pm25">--</span><span class="pv-unit">µg/m³</span></div>
+                        <div class="pv-item"><span class="pv-label">Nhiệt độ</span><span class="pv-val" id="pred60-temp">--</span><span class="pv-unit">°C</span></div>
+                        <div class="pv-item"><span class="pv-label">Độ ẩm</span><span class="pv-val" id="pred60-hum">--</span><span class="pv-unit">%</span></div>
+                        <div class="pv-item"><span class="pv-label">Áp suất</span><span class="pv-val" id="pred60-pres">--</span><span class="pv-unit">hPa</span></div>
+                        <div class="pv-item"><span class="pv-label">UV</span><span class="pv-val" id="pred60-uv">--</span><span class="pv-unit">chỉ số</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fallback when AI not ready -->
+            <div class="ai-content" id="aiPlaceholder">
                 <div class="ai-placeholder">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
                         <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/><path d="M7 8h2m2 0h2m2 0h2M7 11h10"/>
                     </svg>
-                    <p>Mô hình AI dự báo chất lượng không khí sẽ được tích hợp tại đây.</p>
-                    <p class="ai-hint">Dự báo PM2.5 trong 1-6 giờ tới dựa trên dữ liệu lịch sử và mô hình học máy.</p>
+                    <p>Đang kết nối mô hình AI...</p>
+                    <p class="ai-hint">LSTM dự báo thông số + Random Forest phân loại thời tiết</p>
                 </div>
             </div>
         </section>

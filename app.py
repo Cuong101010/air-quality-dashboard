@@ -4,13 +4,20 @@ app.py - Flask server for Air Quality Monitoring Dashboard
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 import database
+import predictor
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
 # Initialize database on startup
 database.init_db()
+
+# Load AI models (non-blocking — server works even if models are missing)
+predictor.load_models()
 
 
 # ======================== API ENDPOINTS ========================
@@ -69,13 +76,36 @@ from io import StringIO
 
 @app.route('/api/predict', methods=['GET'])
 def get_prediction():
-    """Placeholder for AI prediction endpoint."""
-    # TODO: Integrate with trained model in the future
-    return jsonify({
-        'status': 'placeholder',
-        'message': 'AI prediction module will be integrated here',
-        'prediction': None
-    }), 200
+    """AI prediction endpoint: LSTM forecasting + Random Forest classification."""
+    if not predictor.is_loaded():
+        return jsonify({
+            'status': 'not_ready',
+            'message': 'Mô hình AI chưa được tải. Kiểm tra thư mục models/',
+            'prediction': None
+        }), 200
+
+    try:
+        # Get recent data (need at least 30 records for LSTM input window)
+        data = database.get_data(hours=2, limit=100)
+        if len(data) < 30:
+            return jsonify({
+                'status': 'insufficient_data',
+                'message': f'Cần ít nhất 30 bản ghi, hiện có {len(data)}',
+                'prediction': None
+            }), 200
+
+        result = predictor.predict(data)
+        if result is None:
+            return jsonify({
+                'status': 'error',
+                'message': 'Prediction failed',
+                'prediction': None
+            }), 200
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 @app.route('/api/export', methods=['GET'])

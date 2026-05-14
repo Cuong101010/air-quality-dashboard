@@ -328,6 +328,85 @@ function setupExportModal() {
     });
 }
 
+// ===================== AI PREDICTION =====================
+const WEATHER_ICONS = {
+    'normal': '🌤️',
+    'sunny': '☀️',
+    'rainy': '🌧️',
+};
+
+async function fetchPrediction() {
+    try {
+        const res = await fetch(`${API_BASE}/api/predict`);
+        const data = await res.json();
+        updatePredictionUI(data);
+    } catch (e) {
+        console.error('Fetch prediction error:', e);
+    }
+}
+
+function updatePredictionUI(data) {
+    const badge = document.getElementById('aiBadge');
+    const placeholder = document.getElementById('aiPlaceholder');
+    const currentWeather = document.getElementById('currentWeather');
+    const predGrid = document.getElementById('predictionGrid');
+    const aiMethod = document.getElementById('aiMethod');
+
+    if (!data || data.status !== 'ok') {
+        // AI not ready
+        badge.textContent = data?.status === 'not_ready' ? 'Chưa sẵn sàng' :
+                           data?.status === 'insufficient_data' ? 'Thiếu dữ liệu' : 'Đang tải...';
+        placeholder.style.display = '';
+        currentWeather.style.display = 'none';
+        predGrid.style.display = 'none';
+        return;
+    }
+
+    // AI ready — show predictions
+    badge.textContent = 'Hoạt động';
+    badge.style.background = 'rgba(110,231,183,0.15)';
+    badge.style.color = '#6ee7b7';
+    badge.style.borderColor = 'rgba(110,231,183,0.3)';
+    placeholder.style.display = 'none';
+    currentWeather.style.display = 'flex';
+    predGrid.style.display = 'grid';
+
+    if (data.model_info?.method) {
+        aiMethod.textContent = data.model_info.method;
+    }
+
+    // Current weather
+    const cw = data.current_weather || 'normal';
+    document.getElementById('currentWeatherIcon').textContent = WEATHER_ICONS[cw] || '🌤️';
+    document.getElementById('currentWeatherText').textContent = data.current_weather_vi || cw;
+
+    // 30 min prediction
+    const p30 = data.predictions?.['30min'];
+    if (p30) {
+        document.getElementById('weatherIcon30').textContent = WEATHER_ICONS[p30.weather] || '🌤️';
+        document.getElementById('weatherText30').textContent = p30.weather_vi || p30.weather;
+        document.getElementById('predictTime30').textContent = p30.time || '--:--';
+        document.getElementById('pred30-pm25').textContent = Math.round(p30.pm25);
+        document.getElementById('pred30-temp').textContent = p30.temperature?.toFixed(1);
+        document.getElementById('pred30-hum').textContent = p30.humidity?.toFixed(1);
+        document.getElementById('pred30-pres').textContent = p30.pressure?.toFixed(1);
+        document.getElementById('pred30-uv').textContent = p30.uv?.toFixed(2);
+    }
+
+    // 60 min prediction
+    const p60 = data.predictions?.['60min'];
+    if (p60) {
+        document.getElementById('weatherIcon60').textContent = WEATHER_ICONS[p60.weather] || '🌤️';
+        document.getElementById('weatherText60').textContent = p60.weather_vi || p60.weather;
+        document.getElementById('predictTime60').textContent = p60.time || '--:--';
+        document.getElementById('pred60-pm25').textContent = Math.round(p60.pm25);
+        document.getElementById('pred60-temp').textContent = p60.temperature?.toFixed(1);
+        document.getElementById('pred60-hum').textContent = p60.humidity?.toFixed(1);
+        document.getElementById('pred60-pres').textContent = p60.pressure?.toFixed(1);
+        document.getElementById('pred60-uv').textContent = p60.uv?.toFixed(2);
+    }
+}
+
 // ===================== POLLING =====================
 async function refreshAll() {
     await Promise.all([fetchLatest(), fetchHistory(), fetchStats()]);
@@ -343,7 +422,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial fetch
     refreshAll();
+    fetchPrediction();
 
-    // Poll every 30s
+    // Poll sensor data every 30s
     setInterval(refreshAll, POLL_INTERVAL);
+
+    // Poll AI prediction every 60s
+    setInterval(fetchPrediction, 60000);
 });

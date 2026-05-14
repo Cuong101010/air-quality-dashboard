@@ -448,6 +448,180 @@ body {
     opacity: 0.7;
 }
 
+.ai-method {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    margin-left: auto;
+    font-style: italic;
+}
+
+/* ---------- Current Weather ---------- */
+.current-weather {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+    background: rgba(34,211,238,0.05);
+    border: 1px solid rgba(34,211,238,0.1);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+}
+
+.weather-icon-large {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.weather-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.weather-label-text {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.weather-state {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+/* ---------- Prediction Grid ---------- */
+.prediction-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+}
+
+.predict-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.predict-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.predict-30::before {
+    background: linear-gradient(90deg, #22d3ee, #60a5fa);
+}
+
+.predict-60::before {
+    background: linear-gradient(90deg, #a78bfa, #6366f1);
+}
+
+.predict-card:hover {
+    border-color: rgba(99,179,237,0.2);
+    background: rgba(255,255,255,0.04);
+    transform: translateY(-1px);
+}
+
+.predict-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+}
+
+.predict-horizon {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.predict-time {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    background: rgba(255,255,255,0.05);
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+}
+
+.predict-weather {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.predict-weather-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.predict-weather-text {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.predict-30 .predict-weather-text { color: var(--accent-cyan); }
+.predict-60 .predict-weather-text { color: var(--accent-purple); }
+
+.predict-values {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.pv-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+}
+
+.pv-label {
+    color: var(--text-muted);
+    min-width: 55px;
+    font-size: 0.72rem;
+}
+
+.pv-val {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    min-width: 45px;
+    text-align: right;
+}
+
+.pv-unit {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+/* Weather state colors */
+.weather-normal { color: var(--accent-green); }
+.weather-sunny  { color: var(--accent-orange); }
+.weather-rainy  { color: var(--accent-blue); }
+
+@media (max-width: 640px) {
+    .prediction-grid {
+        grid-template-columns: 1fr;
+    }
+    .current-weather {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
 /* ---------- Footer ---------- */
 .footer {
     text-align: center;
