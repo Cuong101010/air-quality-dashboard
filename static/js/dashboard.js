@@ -313,6 +313,8 @@ function setupExportModal() {
     doBtn.addEventListener('click', () => {
         const start = startInput.value;
         const end = endInput.value;
+        const type = document.getElementById('exportType').value;
+        
         if (!start || !end) {
             alert('Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc!');
             return;
@@ -323,7 +325,11 @@ function setupExportModal() {
         }
         
         // Trigger download via window.location
-        window.location.href = `${API_BASE}/api/export?start=${start}&end=${end}`;
+        if (type === 'ai') {
+            window.location.href = `${API_BASE}/api/export_predictions?start=${start}&end=${end}`;
+        } else {
+            window.location.href = `${API_BASE}/api/export?start=${start}&end=${end}`;
+        }
         modal.classList.remove('show');
     });
 }

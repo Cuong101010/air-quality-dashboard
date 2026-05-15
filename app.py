@@ -7,6 +7,7 @@ import database
 import predictor
 import os
 import logging
+from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.INFO)
 
@@ -102,6 +103,18 @@ def get_prediction():
                 'prediction': None
             }), 200
 
+        if result.get('status') == 'ok':
+            vn_now = datetime.utcnow() + timedelta(hours=7)
+            # Save 30min prediction
+            p30 = result['predictions']['30min']
+            pt30 = (vn_now + timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M:%S')
+            database.insert_prediction(pt30, '30min', p30['pm25'], p30['temperature'], p30['humidity'], p30['pressure'], p30['uv'], p30['weather'])
+            
+            # Save 60min prediction
+            p60 = result['predictions']['60min']
+            pt60 = (vn_now + timedelta(minutes=60)).strftime('%Y-%m-%d %H:%M:%S')
+            database.insert_prediction(pt60, '60min', p60['pm25'], p60['temperature'], p60['humidity'], p60['pressure'], p60['uv'], p60['weather'])
+
         return jsonify(result), 200
 
     except Exception as e:
@@ -133,6 +146,34 @@ def export_data():
         output,
         mimetype='text/csv',
         headers={"Content-Disposition": f"attachment;filename=air_quality_{start_date}_to_{end_date}.csv"}
+    )
+
+
+@app.route('/api/export_predictions', methods=['GET'])
+def export_predictions():
+    """Export AI predictions as CSV for a given date range."""
+    start_date = request.args.get('start', '2000-01-01')
+    end_date = request.args.get('end', '2100-12-31')
+    
+    rows = database.get_predictions_range(start_date, end_date)
+    
+    si = StringIO()
+    cw = csv.writer(si)
+    # Header
+    cw.writerow(['ID', 'Generated_At', 'Predicted_For_Time', 'Target_Period', 'PM2.5', 'Temperature_C', 'Humidity_%', 'Pressure_hPa', 'UV_Index', 'Weather'])
+    
+    for r in rows:
+        cw.writerow([
+            r['id'], r['timestamp'], r['pred_time'], r['target_period'],
+            r['pm25'], r['temperature'], r['humidity'], r['pressure'], 
+            r['uv'], r['weather']
+        ])
+        
+    output = si.getvalue()
+    return Response(
+        output,
+        mimetype='text/csv',
+        headers={"Content-Disposition": f"attachment;filename=ai_predictions_{start_date}_to_{end_date}.csv"}
     )
 
 # ======================== SERVE FRONTEND ========================

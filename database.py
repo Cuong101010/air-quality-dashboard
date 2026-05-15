@@ -40,6 +40,23 @@ def init_db():
     cur.execute('''
         CREATE INDEX IF NOT EXISTS idx_timestamp ON sensor_data(timestamp)
     ''')
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS predictions (
+            id SERIAL PRIMARY KEY,
+            timestamp TIMESTAMP DEFAULT NOW(),
+            pred_time TIMESTAMP NOT NULL,
+            target_period TEXT NOT NULL,
+            pm25 DOUBLE PRECISION,
+            temperature DOUBLE PRECISION,
+            humidity DOUBLE PRECISION,
+            pressure DOUBLE PRECISION,
+            uv DOUBLE PRECISION,
+            weather TEXT
+        )
+    ''')
+    cur.execute('''
+        CREATE INDEX IF NOT EXISTS idx_pred_timestamp ON predictions(timestamp)
+    ''')
     conn.commit()
     cur.close()
     conn.close()
@@ -168,5 +185,46 @@ def get_data_range(start_date, end_date):
         d = dict(r)
         if isinstance(d.get('timestamp'), datetime):
             d['timestamp'] = d['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+        results.append(d)
+    return results
+
+
+def insert_prediction(pred_time, target_period, pm25, temperature, humidity, pressure, uv, weather):
+    """Insert a new AI prediction."""
+    conn = get_db()
+    cur = conn.cursor()
+    vn_time = (datetime.utcnow() + timedelta(hours=7)).strftime('%Y-%m-%d %H:%M:%S')
+    cur.execute(
+        '''INSERT INTO predictions (timestamp, pred_time, target_period, pm25, temperature, humidity, pressure, uv, weather)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+        (vn_time, pred_time, target_period, pm25, temperature, humidity, pressure, uv, weather)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def get_predictions_range(start_date, end_date):
+    """Get predictions between two dates (format YYYY-MM-DD)."""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    start = f"{start_date} 00:00:00"
+    end = f"{end_date} 23:59:59"
+    cur.execute(
+        '''SELECT * FROM predictions
+           WHERE timestamp >= %s AND timestamp <= %s
+           ORDER BY timestamp ASC''',
+        (start, end)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    results = []
+    for r in rows:
+        d = dict(r)
+        if isinstance(d.get('timestamp'), datetime):
+            d['timestamp'] = d['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+        if isinstance(d.get('pred_time'), datetime):
+            d['pred_time'] = d['pred_time'].strftime('%Y-%m-%d %H:%M:%S')
         results.append(d)
     return results
