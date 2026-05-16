@@ -50,6 +50,7 @@ def load_models():
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
         import tensorflow as tf
+        from tensorflow import keras
         tf.get_logger().setLevel('ERROR')
 
         logger.info("Loading AI models...")
@@ -59,7 +60,6 @@ def load_models():
         _label_encoder = joblib.load(os.path.join(MODELS_DIR, 'label_encoder.pkl'))
         _rf_model = joblib.load(os.path.join(MODELS_DIR, 'rf_classifier.pkl'))
 
-        from tensorflow import keras
         _lstm_model = keras.models.load_model(os.path.join(MODELS_DIR, 'lstm_model.keras'))
 
         _loaded = True

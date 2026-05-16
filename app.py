@@ -17,8 +17,7 @@ CORS(app)
 # Initialize database on startup
 database.init_db()
 
-# Load AI models (non-blocking — server works even if models are missing)
-predictor.load_models()
+# Models will be loaded lazily on the first AI prediction request to save memory
 
 
 # ======================== API ENDPOINTS ========================
@@ -95,12 +94,15 @@ from io import StringIO
 @app.route('/api/predict', methods=['GET'])
 def get_prediction():
     """AI prediction endpoint: LSTM forecasting + Random Forest classification."""
+    # Lazy load models if not already loaded
     if not predictor.is_loaded():
-        return jsonify({
-            'status': 'not_ready',
-            'message': 'Mô hình AI chưa được tải. Kiểm tra thư mục models/',
-            'prediction': None
-        }), 200
+        success = predictor.load_models()
+        if not success:
+            return jsonify({
+                'status': 'not_ready',
+                'message': 'Không thể tải mô hình AI. Kiểm tra tài nguyên server (RAM).',
+                'prediction': None
+            }), 200
 
     try:
         # Get recent data (need at least 30 records for LSTM input window)

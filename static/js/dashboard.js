@@ -128,6 +128,8 @@ async function fetchLatest() {
         if (data && data.pm25 !== undefined) {
             updateCards(data);
             setConnectionStatus(true);
+        } else {
+            setConnectionStatus(false);
         }
     } catch (e) {
         console.error('Fetch latest error:', e);
@@ -396,12 +398,38 @@ const WEATHER_ICONS = {
 };
 
 async function fetchPrediction() {
+    const btn = document.getElementById('runAiBtn');
+    const badge = document.getElementById('aiBadge');
+    
     try {
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "Đang tính toán...";
+            btn.style.opacity = "0.7";
+        }
+        badge.textContent = "Đang xử lý...";
+
         const res = await fetch(`${API_BASE}/api/predict`);
+        
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error('Prediction server error:', errorText);
+            alert("Lỗi máy chủ (502/500). Có thể do bộ nhớ RAM bị đầy khi chạy AI. Vui lòng thử lại sau 1 phút.");
+            updatePredictionUI({ status: 'error', message: 'Server Error' });
+            return;
+        }
+
         const data = await res.json();
         updatePredictionUI(data);
     } catch (e) {
         console.error('Fetch prediction error:', e);
+        alert("Không thể kết nối với máy chủ AI. Vui lòng kiểm tra mạng.");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93L12 22l-.75-12.07A4.001 4.001 0 0 1 12 2z"/><circle cx="12" cy="6" r="1.5" fill="currentColor"/></svg> Chạy Dự Báo`;
+            btn.style.opacity = "1";
+        }
     }
 }
 
@@ -469,7 +497,10 @@ function updatePredictionUI(data) {
 
 // ===================== POLLING =====================
 async function refreshAll() {
-    await Promise.all([fetchLatest(), fetchHistory(), fetchStats()]);
+    // Non-blocking fetch: each request runs independently
+    fetchLatest();
+    fetchHistory();
+    fetchStats();
 }
 
 // ===================== INIT =====================
@@ -481,13 +512,15 @@ document.addEventListener('DOMContentLoaded', () => {
     updateClock();
     setInterval(updateClock, 1000);
 
-    // Initial fetch
+    // Initial fetch for sensor data
     refreshAll();
-    fetchPrediction();
+
+    // AI Prediction is now MANUAL via button
+    const runAiBtn = document.getElementById('runAiBtn');
+    if (runAiBtn) {
+        runAiBtn.addEventListener('click', fetchPrediction);
+    }
 
     // Poll sensor data every 30s
     setInterval(refreshAll, POLL_INTERVAL);
-
-    // Poll AI prediction every 60s
-    setInterval(fetchPrediction, 60000);
 });
