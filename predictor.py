@@ -37,7 +37,7 @@ def load_models():
 
     try:
         # Check if model files exist
-        required_files = ['lstm_model.keras', 'rf_classifier.pkl', 'scaler.pkl',
+        required_files = ['lstm_model.onnx', 'rf_classifier.pkl', 'scaler.pkl',
                           'label_encoder.pkl', 'config.pkl']
         for f in required_files:
             path = os.path.join(MODELS_DIR, f)
@@ -45,13 +45,7 @@ def load_models():
                 logger.warning(f"Model file not found: {path}")
                 return False
 
-        # Suppress TF warnings
-        os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
-        import tensorflow as tf
-        from tensorflow import keras
-        tf.get_logger().setLevel('ERROR')
+        import onnxruntime as ort
 
         logger.info("Loading AI models...")
 
@@ -60,7 +54,7 @@ def load_models():
         _label_encoder = joblib.load(os.path.join(MODELS_DIR, 'label_encoder.pkl'))
         _rf_model = joblib.load(os.path.join(MODELS_DIR, 'rf_classifier.pkl'))
 
-        _lstm_model = keras.models.load_model(os.path.join(MODELS_DIR, 'lstm_model.keras'))
+        _lstm_model = ort.InferenceSession(os.path.join(MODELS_DIR, 'lstm_model.onnx'))
 
         _loaded = True
         logger.info("All AI models loaded successfully!")
@@ -144,7 +138,8 @@ def predict(recent_records):
         X = full_features.reshape(1, seq_len, -1).astype(np.float32)
 
         # ======== PHASE 1: LSTM Prediction ========
-        lstm_output = _lstm_model.predict(X, verbose=0)[0]  # shape: (10,)
+        input_name = _lstm_model.get_inputs()[0].name
+        lstm_output = _lstm_model.run(None, {input_name: X})[0][0]  # shape: (10,)
 
         # Split into 30min and 60min predictions (scaled values)
         pred_30_scaled = lstm_output[:5]

@@ -2,7 +2,7 @@ flask
 flask-cors
 gunicorn
 psycopg2-binary
-tensorflow-cpu
+onnxruntime
 scikit-learn
 pandas
 numpy
