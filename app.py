@@ -94,16 +94,6 @@ from io import StringIO
 @app.route('/api/predict', methods=['GET'])
 def get_prediction():
     """AI prediction endpoint: LSTM forecasting + Random Forest classification."""
-    # Lazy load models if not already loaded
-    if not predictor.is_loaded():
-        success = predictor.load_models()
-        if not success:
-            return jsonify({
-                'status': 'not_ready',
-                'message': 'Không thể tải mô hình AI. Kiểm tra tài nguyên server (RAM).',
-                'prediction': None
-            }), 200
-
     try:
         # Get recent data (need at least 30 records for LSTM input window)
         data = database.get_data(hours=2, limit=100)
@@ -113,6 +103,16 @@ def get_prediction():
                 'message': f'Cần ít nhất 30 bản ghi, hiện có {len(data)}',
                 'prediction': None
             }), 200
+
+        # Lazy load models if not already loaded (only if we have enough data)
+        if not predictor.is_loaded():
+            success = predictor.load_models()
+            if not success:
+                return jsonify({
+                    'status': 'not_ready',
+                    'message': 'Không thể tải mô hình AI. Kiểm tra tài nguyên server (RAM).',
+                    'prediction': None
+                }), 200
 
         result = predictor.predict(data)
         if result is None:

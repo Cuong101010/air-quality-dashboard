@@ -420,6 +420,16 @@ async function fetchPrediction() {
         }
 
         const data = await res.json();
+        
+        // Show explicit alert to user for better UX
+        if (data.status === 'insufficient_data') {
+            alert("Không đủ dữ liệu để dự báo: " + data.message);
+        } else if (data.status === 'not_ready') {
+            alert("Chưa sẵn sàng: " + data.message);
+        } else if (data.status === 'error') {
+            alert("Lỗi dự báo: " + data.message);
+        }
+        
         updatePredictionUI(data);
     } catch (e) {
         console.error('Fetch prediction error:', e);
