@@ -45,6 +45,23 @@ def receive_data():
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
 
+@app.route('/api/delete', methods=['POST'])
+def delete_data():
+    """Delete data from the last N hours, or all data if hours=0."""
+    try:
+        data = request.get_json(force=True)
+        hours = int(data.get('hours', 0))
+        
+        success = database.delete_data(hours)
+        if success:
+            return jsonify({'status': 'ok', 'message': f'Đã xóa dữ liệu (hours={hours})'}), 200
+        else:
+            return jsonify({'status': 'error', 'message': 'Lỗi khi xóa dữ liệu trong DB'}), 500
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+
+
 @app.route('/api/latest', methods=['GET'])
 def get_latest():
     """Get the most recent sensor reading."""

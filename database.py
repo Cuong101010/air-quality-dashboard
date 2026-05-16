@@ -228,3 +228,31 @@ def get_predictions_range(start_date, end_date):
             d['pred_time'] = d['pred_time'].strftime('%Y-%m-%d %H:%M:%S')
         results.append(d)
     return results
+
+
+def delete_data(hours):
+    """Delete sensor data and predictions from the last N hours. If hours=0, delete ALL data."""
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        if hours == 0:
+            cur.execute('DELETE FROM sensor_data')
+            cur.execute('DELETE FROM predictions')
+            deleted_sensor = cur.rowcount
+            # rowcount for the second query might overwrite the first, but we just need to execute
+        else:
+            vn_now = datetime.utcnow() + timedelta(hours=7)
+            since = (vn_now - timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
+            
+            cur.execute('DELETE FROM sensor_data WHERE timestamp >= %s', (since,))
+            cur.execute('DELETE FROM predictions WHERE timestamp >= %s', (since,))
+            
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Delete error: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cur.close()
+        conn.close()

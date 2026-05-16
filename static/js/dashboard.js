@@ -334,6 +334,60 @@ function setupExportModal() {
     });
 }
 
+// ===================== DELETE MODAL =====================
+function setupDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    const openBtn = document.getElementById('openDeleteBtn');
+    const closeBtn = document.getElementById('closeDeleteBtn');
+    const doBtn = document.getElementById('doDeleteBtn');
+
+    if (!modal || !openBtn || !closeBtn || !doBtn) return;
+
+    openBtn.addEventListener('click', () => modal.classList.add('show'));
+    closeBtn.addEventListener('click', () => modal.classList.remove('show'));
+    
+    // Close on outside click
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('show');
+    });
+
+    doBtn.addEventListener('click', async () => {
+        const hours = document.getElementById('deleteRange').value;
+        const confirmMsg = hours == 0 
+            ? "BẠN CÓ CHẮC CHẮN MUỐN XÓA TẤT CẢ DỮ LIỆU? Hành động này không thể hoàn tác!" 
+            : `Bạn có chắc chắn muốn xóa dữ liệu của ${hours} giờ qua không?`;
+
+        if (confirm(confirmMsg)) {
+            doBtn.textContent = "Đang xóa...";
+            doBtn.disabled = true;
+            try {
+                const response = await fetch(`${API_BASE}/api/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hours: parseInt(hours) })
+                });
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    alert(data.message);
+                    modal.classList.remove('show');
+                    // Refresh all data
+                    refreshAll();
+                    fetchPrediction();
+                } else {
+                    alert("Lỗi: " + data.message);
+                }
+            } catch (error) {
+                console.error("Lỗi khi xóa:", error);
+                alert("Đã xảy ra lỗi khi kết nối với máy chủ.");
+            } finally {
+                doBtn.textContent = "Xác Nhận Xóa";
+                doBtn.disabled = false;
+            }
+        }
+    });
+}
+
 // ===================== AI PREDICTION =====================
 const WEATHER_ICONS = {
     'normal': '🌤️',
@@ -423,6 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCharts();
     setupTimeButtons();
     setupExportModal();
+    setupDeleteModal();
     updateClock();
     setInterval(updateClock, 1000);
 
